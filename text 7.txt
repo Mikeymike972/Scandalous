@@ -1,0 +1,59 @@
+const express = require('express');
+const pool = require('../db');
+const router = express.Router();
+
+// Nearby users
+router.get('/nearby', async (req, res) => {
+    const { lat, lng, radius } = req.query;
+    try {
+        const result = await pool.query(
+            `SELECT id, username, lat, lng, is_blurred, is_visible, available_until
+             FROM users
+             WHERE is_visible = TRUE
+             AND earth_distance(ll_to_earth($1, $2), ll_to_earth(lat, lng)) < $3`,
+            [lat, lng, radius]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle blur
+router.put('/blur/:id', async (req, res) => {
+    const { id } = req.params;
+    const { is_blurred } = req.body;
+    try {
+        await pool.query('UPDATE users SET is_blurred = $1 WHERE id = $2', [is_blurred, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle visibility
+router.put('/visibility/:id', async (req, res) => {
+    const { id } = req.params;
+    const { is_visible } = req.body;
+    try {
+        await pool.query('UPDATE users SET is_visible = $1 WHERE id = $2', [is_visible, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Set availability
+router.put('/availability/:id', async (req, res) => {
+    const { id } = req.params;
+    const { hours } = req.body;
+    const until = new Date(Date.now() + hours * 60 * 60 * 1000);
+    try {
+        await pool.query('UPDATE users SET available_until = $1 WHERE id = $2', [until, id]);
+        res.json({ success: true, available_until: until });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+module.exports = router;

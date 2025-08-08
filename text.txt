@@ -1,0 +1,10 @@
+backend/
+│── server.js
+│── db.js
+│── package.json
+│── .env.example
+│── schema.sql
+└── routes/
+    ├── auth.js
+    ├── users.js
+    ├── messages.js
